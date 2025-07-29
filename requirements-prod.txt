@@ -1,0 +1,72 @@
+# 🔥 Elite Crew System - Production Dependencies
+# Core CrewAI and framework dependencies
+crewai>=0.28.8
+crewai[tools]>=0.1.6
+langchain>=0.1.0
+langchain-openai>=0.0.5
+
+# Web framework and API
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+gunicorn>=21.2.0
+websockets>=12.0
+
+# Database and ORM
+sqlalchemy>=2.0.0
+asyncpg>=0.29.0
+aiosqlite>=0.19.0
+alembic>=1.12.0
+
+# Redis and caching
+redis>=5.0.0
+aioredis>=2.0.0
+
+# HTTP client and requests
+aiohttp>=3.9.0
+httpx>=0.25.0
+requests>=2.31.0
+
+# Data processing and validation
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-multipart>=0.0.6
+
+# Environment and configuration
+python-dotenv>=1.0.0
+pyyaml>=6.0
+
+# Security and authentication
+cryptography>=41.0.0
+passlib[bcrypt]>=1.7.4
+python-jose[cryptography]>=3.3.0
+
+# Monitoring and observability
+prometheus-client>=0.19.0
+structlog>=23.2.0
+opentelemetry-api>=1.21.0
+opentelemetry-sdk>=1.21.0
+
+# Templating
+jinja2>=3.1.0
+
+# Async utilities
+asyncio-mqtt>=0.16.0
+aiofiles>=23.2.0
+
+# Git operations
+gitpython>=3.1.40
+
+# Docker SDK
+docker>=6.1.0
+
+# Task queue
+celery>=5.3.0
+
+# Performance and optimization
+orjson>=3.9.0
+cachetools>=5.3.0
+
+# Utilities
+click>=8.1.0
+rich>=13.7.0
+typer>=0.9.0

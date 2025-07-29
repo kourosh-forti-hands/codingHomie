@@ -1,0 +1,211 @@
+version: '3.8'
+
+services:
+  # 🔥 Elite Crew System - Main Application
+  elite-crew:
+    build:
+      context: .
+      target: production
+    container_name: elite-crew-system
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=postgresql://elitecrew:elitepass@postgres:5432/elitecrewdb
+      - REDIS_URL=redis://redis:6379/0
+      - LOG_LEVEL=INFO
+      - MAX_CONCURRENT_AGENTS=5
+      - ENABLE_METRICS=true
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - elite-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 📊 PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: elite-postgres
+    environment:
+      - POSTGRES_DB=elitecrewdb
+      - POSTGRES_USER=elitecrew
+      - POSTGRES_PASSWORD=elitepass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - elite-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U elitecrew -d elitecrewdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ⚡ Redis Cache & Message Broker
+  redis:
+    image: redis:7-alpine
+    container_name: elite-redis
+    command: redis-server --appendonly yes --requirepass eliteredis
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - elite-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # 📈 Monitoring - Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: elite-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - elite-network
+    restart: unless-stopped
+
+  # 📊 Visualization - Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: elite-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=eliteadmin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./monitoring/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ./monitoring/dashboards:/var/lib/grafana/dashboards
+    ports:
+      - "3000:3000"
+    networks:
+      - elite-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  # 📝 Log Management - ELK Stack (Elasticsearch)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elite-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - elite-network
+    restart: unless-stopped
+
+  # 📝 Log Processing - Logstash
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: elite-logstash
+    volumes:
+      - ./monitoring/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    ports:
+      - "5044:5044"
+    networks:
+      - elite-network
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+
+  # 📝 Log Visualization - Kibana
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: elite-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - elite-network
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+
+  # 🔄 Reverse Proxy - Nginx
+  nginx:
+    image: nginx:alpine
+    container_name: elite-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    networks:
+      - elite-network
+    restart: unless-stopped
+    depends_on:
+      - elite-crew
+
+  # 📊 System Monitoring - Node Exporter
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: elite-node-exporter
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - "9100:9100"
+    networks:
+      - elite-network
+    restart: unless-stopped
+
+# 🔗 Networks
+networks:
+  elite-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# 💾 Volumes
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  elasticsearch_data:
+    driver: local

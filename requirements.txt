@@ -1,0 +1,45 @@
+# 🔥 Elite Crew System - Core Dependencies
+# Core CrewAI and framework dependencies
+crewai>=0.28.8
+crewai[tools]>=0.1.6
+langchain>=0.1.0
+langchain-openai>=0.0.5
+
+# Amazon Bedrock Integration
+boto3>=1.34.0
+botocore>=1.34.0
+langchain-aws>=0.1.0
+
+# Web framework and API
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+websockets>=12.0
+jinja2>=3.1.0
+
+# Database and ORM
+sqlalchemy>=2.0.0
+aiosqlite>=0.19.0
+
+# HTTP client and requests
+aiohttp>=3.9.0
+requests>=2.31.0
+
+# Data processing and validation
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+
+# Git operations
+gitpython>=3.1.40
+
+# Docker SDK (optional)
+docker>=6.1.0
+
+# Async utilities
+aiofiles>=23.2.0
+
+# Development and testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Utilities
+click>=8.1.0
