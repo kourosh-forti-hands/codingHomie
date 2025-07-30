@@ -1,0 +1,136 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}🔥 Elite Crew Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Dashboard Header -->
+    {% include "components/dashboard_header.html" %}
+
+    <!-- Loading Indicator -->
+    <div x-show="loading" class="loading pulse">
+        <div class="flex items-center gap-4">
+            <div class="animate-spin text-2xl">⚙️</div>
+            <span>Initializing Elite Crew System...</span>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Content -->
+    <div x-show="!loading" style="display: none;" x-transition>
+        <!-- System Metrics -->
+        {% include "components/system_metrics.html" %}
+
+        <!-- Agent Grid -->
+        <div class="mt-8">
+            {% include "components/agent_grid.html" %}
+        </div>
+
+        <!-- Project Grid -->
+        <div class="mt-8">
+            {% include "components/project_grid.html" %}
+        </div>
+
+        <!-- Control Panel -->
+        <div class="mt-8">
+            {% include "components/control_panel.html" %}
+        </div>
+
+        <!-- Performance Charts -->
+        <div class="mt-8">
+            <div class="card glass">
+                <div class="card-header">
+                    <h3 class="card-title">📈 Performance Analytics</h3>
+                </div>
+                
+                <div class="grid grid-2">
+                    <!-- Task Completion Chart -->
+                    <div class="chart-card glass">
+                        <h4 class="chart-title">Task Completion Rate</h4>
+                        <div class="h-48 flex items-center justify-center text-muted">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">📊</div>
+                                <p>Chart visualization coming soon</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Agent Performance Chart -->
+                    <div class="chart-card glass">
+                        <h4 class="chart-title">Agent Performance</h4>
+                        <div class="h-48 flex items-center justify-center text-muted">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">⚡</div>
+                                <p>Performance metrics visualization</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-time Activity Feed -->
+        <div class="mt-8">
+            <div class="card glass">
+                <div class="card-header">
+                    <h3 class="card-title">🔄 Recent Activity</h3>
+                </div>
+                
+                <div x-data="{ 
+                    activities: [
+                        { time: new Date(), action: 'System initialized', type: 'info' },
+                        { time: new Date(Date.now() - 30000), action: 'Agent Alpha came online', type: 'success' },
+                        { time: new Date(Date.now() - 60000), action: 'New project created', type: 'info' },
+                        { time: new Date(Date.now() - 120000), action: 'Task completed by Agent Beta', type: 'success' }
+                    ]
+                }" class="space-y-3">
+                    <template x-for="activity in activities" :key="activity.time">
+                        <div class="flex items-center gap-4 p-3 rounded-lg bg-glass border border-glass">
+                            <div class="w-2 h-2 rounded-full" :class="{
+                                'bg-success-color': activity.type === 'success',
+                                'bg-info-color': activity.type === 'info',
+                                'bg-warning-color': activity.type === 'warning',
+                                'bg-error-color': activity.type === 'error'
+                            }"></div>
+                            <div class="flex-1">
+                                <p x-text="activity.action"></p>
+                            </div>
+                            <div class="text-sm text-muted" x-text="activity.time.toLocaleTimeString()"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Dashboard-specific functionality
+    document.addEventListener('alpine:init', () => {
+        // Auto-refresh data every 30 seconds
+        setInterval(() => {
+            const app = Alpine.store('dashboardApp');
+            if (app && window.dashboardWS?.ws?.readyState === WebSocket.OPEN) {
+                window.dashboardWS.requestStatus();
+            }
+        }, 30000);
+        
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 'r':
+                        e.preventDefault();
+                        Alpine.store('dashboardApp')?.refreshData();
+                        break;
+                    case 'n':
+                        e.preventDefault();
+                        document.dispatchEvent(new CustomEvent('create-project'));
+                        break;
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

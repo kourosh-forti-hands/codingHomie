@@ -1,0 +1,70 @@
+<!-- Agent Grid Component -->
+<div x-data="{ 
+    getAgentArray() {
+        return Object.entries(this.agents || {}).map(([id, data]) => ({
+            id,
+            ...data
+        }));
+    }
+}">
+    <div class="card glass">
+        <div class="card-header">
+            <h3 class="card-title">🤖 Elite Agents</h3>
+            <div class="text-sm text-secondary">
+                <span x-text="getAgentArray().filter(a => a.status === 'online').length"></span> online
+            </div>
+        </div>
+        
+        <div class="grid grid-2" x-show="!loading">
+            <template x-for="agent in getAgentArray()" :key="agent.id">
+                <div class="agent-card glass" :class="agent.status">
+                    <div class="agent-name" x-text="agent.name"></div>
+                    <div class="agent-role" x-text="agent.role || 'Elite Agent'"></div>
+                    
+                    <div class="badge mb-4" :class="{
+                        'badge-online': agent.status === 'online',
+                        'badge-busy': agent.status === 'busy', 
+                        'badge-offline': agent.status === 'offline'
+                    }" x-text="agent.status?.toUpperCase() || 'UNKNOWN'">
+                    </div>
+                    
+                    <div class="space-y-2 text-sm">
+                        <div class="metric">
+                            <span>Tasks:</span>
+                            <span x-text="`${agent.current_tasks || 0}/${agent.max_concurrent || 3}`"></span>
+                        </div>
+                        <div class="metric">
+                            <span>Completed:</span>
+                            <span x-text="agent.tasks_executed || 0"></span>
+                        </div>
+                        <div class="metric">
+                            <span>Success Rate:</span>
+                            <span x-text="(agent.success_rate || 0).toFixed(1) + '%'"></span>
+                        </div>
+                        <div class="metric">
+                            <span>Avg Time:</span>
+                            <span x-text="(agent.average_execution_time || 0).toFixed(2) + 's'"></span>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+        
+        <!-- Loading State -->
+        <div x-show="loading" class="grid grid-2">
+            <template x-for="i in 5" :key="i">
+                <div class="agent-card glass">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text"></div>
+                </div>
+            </template>
+        </div>
+        
+        <!-- Empty State -->
+        <div x-show="!loading && getAgentArray().length === 0" class="text-center py-8">
+            <p class="text-muted">No agents available. System initializing...</p>
+        </div>
+    </div>
+</div>

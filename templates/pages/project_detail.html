@@ -1,0 +1,374 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Project Details - Elite Crew Dashboard{% endblock %}
+
+{% block content %}
+<div class="container" x-data="projectDetailApp('{{ project_id }}')" x-init="loadProject()">
+    <!-- Back Navigation -->
+    <a href="/" class="nav-back">
+        ← Back to Dashboard
+    </a>
+
+    <!-- Loading State -->
+    <div x-show="loading" class="loading pulse">
+        <div class="flex items-center gap-4">
+            <div class="animate-spin text-2xl">⚙️</div>
+            <span>Loading project details...</span>
+        </div>
+    </div>
+
+    <!-- Project Header -->
+    <div x-show="!loading && project" class="card glass-strong" style="display: none;" x-transition>
+        <div class="project-header">
+            <h1 class="text-3xl font-bold mb-4" x-text="project?.name || 'Loading...'"></h1>
+            <p class="text-lg text-secondary mb-6" x-text="project?.description || 'Loading project details...'"></p>
+            
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <span class="badge" :class="{
+                        'badge-planning': project?.status === 'planning',
+                        'badge-in-progress': project?.status === 'in_progress', 
+                        'badge-completed': project?.status === 'completed'
+                    }" x-text="project?.status || 'loading'"></span>
+                    
+                    <span class="text-secondary">
+                        Progress: <span x-text="project?.progress || 0"></span>%
+                    </span>
+                </div>
+                
+                <div class="flex gap-4">
+                    <button x-show="project?.status === 'planning'" 
+                            class="btn btn-success" @click="executeProject()">
+                        🚀 Execute Project
+                    </button>
+                    <button x-show="project?.status === 'in_progress'" 
+                            class="btn btn-secondary" @click="stopProject()">
+                        ⏹️ Stop Project
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Tabs -->
+    <div x-show="!loading" class="tab-container" style="display: none;" x-transition>
+        <button class="tab" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">
+            📊 Overview
+        </button>
+        <button class="tab" :class="{ active: activeTab === 'tasks' }" @click="activeTab = 'tasks'">
+            📝 Tasks
+        </button>
+        <button class="tab" :class="{ active: activeTab === 'requirements' }" @click="activeTab = 'requirements'">
+            📋 Requirements
+        </button>
+        <button class="tab" :class="{ active: activeTab === 'settings' }" @click="activeTab = 'settings'">
+            ⚙️ Settings
+        </button>
+    </div>
+
+    <!-- Tab Content -->
+    <div x-show="!loading" class="tab-content glass" style="display: none;" x-transition>
+        <!-- Overview Tab -->
+        <div x-show="activeTab === 'overview'" class="tab-pane">
+            <h3 class="text-xl font-bold mb-6">Project Overview</h3>
+            
+            <div class="grid grid-2">
+                <div>
+                    <h4 class="font-semibold mb-4">Project Statistics</h4>
+                    <div class="space-y-3">
+                        <div class="metric">
+                            <span>📝 Total Tasks:</span>
+                            <span class="metric-value" x-text="tasks?.length || 0"></span>
+                        </div>
+                        <div class="metric">
+                            <span>✅ Completed:</span>
+                            <span class="metric-value" x-text="tasks?.filter(t => t.status === 'completed').length || 0"></span>
+                        </div>
+                        <div class="metric">
+                            <span>🔄 In Progress:</span>
+                            <span class="metric-value" x-text="tasks?.filter(t => t.status === 'in_progress').length || 0"></span>
+                        </div>
+                        <div class="metric">
+                            <span>⏱️ Estimated Hours:</span>
+                            <span class="metric-value" x-text="project?.estimated_hours || 0"></span>
+                        </div>
+                        <div class="metric">
+                            <span>📅 Created:</span>
+                            <span class="metric-value" x-text="project?.created_at ? formatDate(project.created_at) : '-'"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold mb-4">Recent Activity</h4>
+                    <div class="space-y-3">
+                        <p class="text-muted">Loading activity...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks Tab -->
+        <div x-show="activeTab === 'tasks'" class="tab-pane">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">Project Tasks</h3>
+                <button class="btn btn-primary" @click="showAddTaskForm = true">
+                    ➕ Add New Task
+                </button>
+            </div>
+            
+            <!-- Add Task Form -->
+            <div x-show="showAddTaskForm" class="card glass mb-6" style="display: none;" x-transition>
+                <h4 class="font-semibold mb-4">Add New Task</h4>
+                <form @submit.prevent="createTask()">
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Task Title</label>
+                            <input type="text" class="form-input" x-model="newTask.title" 
+                                   placeholder="Enter task title..." required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Priority</label>
+                            <select class="form-select" x-model="newTask.priority">
+                                <option value="1">Low</option>
+                                <option value="2">Medium</option>
+                                <option value="3">High</option>
+                                <option value="4">Critical</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-textarea" rows="3" x-model="newTask.description"
+                                  placeholder="Describe the task..."></textarea>
+                    </div>
+                    
+                    <div class="grid grid-3">
+                        <div class="form-group">
+                            <label class="form-label">Estimated Hours</label>
+                            <input type="number" class="form-input" x-model="newTask.estimated_hours" 
+                                   min="0.5" step="0.5" placeholder="1">
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-success mt-6">Create Task</button>
+                        </div>
+                        <div class="form-group">
+                            <button type="button" class="btn btn-secondary mt-6" @click="hideAddTaskForm()">Cancel</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Tasks List -->
+            <div class="space-y-4">
+                <template x-for="task in tasks" :key="task.id">
+                    <div class="task-card glass" :class="task.status">
+                        <div class="task-header">
+                            <div>
+                                <h4 class="task-title" x-text="task.title"></h4>
+                                <p class="task-description" x-text="task.description || 'No description'"></p>
+                                <div class="task-meta">
+                                    <span>Priority: <span class="task-priority" :class="`priority-${task.priority}`" x-text="['', 'Low', 'Medium', 'High', 'Critical'][task.priority] || 'Medium'"></span></span>
+                                    <span>Estimated: <span x-text="task.estimated_hours"></span>h</span>
+                                    <span x-show="task.agent_id">Agent: <span x-text="task.agent_id"></span></span>
+                                </div>
+                            </div>
+                            <div class="badge" :class="{
+                                'badge-planning': task.status === 'pending',
+                                'badge-in-progress': task.status === 'in_progress', 
+                                'badge-completed': task.status === 'completed',
+                                'badge-offline': task.status === 'failed'
+                            }" x-text="task.status?.replace('_', ' ') || 'pending'"></div>
+                        </div>
+                    </div>
+                </template>
+                
+                <div x-show="!tasks || tasks.length === 0" class="text-center py-12">
+                    <div class="text-6xl mb-4">📝</div>
+                    <p class="text-xl font-semibold mb-2">No tasks yet</p>
+                    <p class="text-muted mb-6">Add your first task to get started</p>
+                    <button class="btn btn-primary" @click="showAddTaskForm = true">
+                        ➕ Add First Task
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Requirements Tab -->
+        <div x-show="activeTab === 'requirements'" class="tab-pane">
+            <h3 class="text-xl font-bold mb-6">Project Requirements</h3>
+            
+            <div class="form-group mb-6">
+                <label class="form-label">Add Requirement</label>
+                <div class="flex gap-4">
+                    <input type="text" class="form-input flex-1" x-model="newRequirement" 
+                           placeholder="Enter project requirement...">
+                    <button class="btn btn-primary" @click="addRequirement()">Add</button>
+                </div>
+            </div>
+            
+            <ul class="space-y-3">
+                <template x-for="(requirement, index) in requirements" :key="index">
+                    <li class="flex items-center justify-between p-4 bg-glass border border-glass-border rounded-lg">
+                        <span x-text="requirement"></span>
+                        <button class="btn btn-sm text-error-color hover:bg-error-color hover:text-white" 
+                                @click="removeRequirement(index)">
+                            Remove
+                        </button>
+                    </li>
+                </template>
+                
+                <li x-show="requirements.length === 0" class="text-center py-8 text-muted">
+                    No requirements added yet
+                </li>
+            </ul>
+        </div>
+
+        <!-- Settings Tab -->
+        <div x-show="activeTab === 'settings'" class="tab-pane">
+            <h3 class="text-xl font-bold mb-6">Project Settings</h3>
+            
+            <form @submit.prevent="updateProject()">
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Project Name</label>
+                        <input type="text" class="form-input" x-model="project.name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Complexity</label>
+                        <select class="form-select" x-model="project.complexity">
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" rows="4" x-model="project.description"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Estimated Hours</label>
+                    <input type="number" class="form-input" x-model="project.estimated_hours" 
+                           min="1" step="1">
+                </div>
+                
+                <button type="submit" class="btn btn-success">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function projectDetailApp(projectId) {
+        return {
+            projectId: projectId,
+            project: null,
+            tasks: [],
+            requirements: [],
+            activeTab: 'overview',
+            loading: true,
+            showAddTaskForm: false,
+            newTask: {
+                title: '',
+                description: '',
+                priority: 2,
+                estimated_hours: 1
+            },
+            newRequirement: '',
+            
+            async loadProject() {
+                try {
+                    // Load project data
+                    const projectsResponse = await window.apiClient.getProjects();
+                    this.project = projectsResponse.projects.find(p => p.id === this.projectId);
+                    
+                    // Load tasks
+                    await this.loadTasks();
+                    
+                    this.loading = false;
+                } catch (error) {
+                    console.error('Error loading project:', error);
+                    this.showToast('Error loading project data', 'error');
+                    this.loading = false;
+                }
+            },
+            
+            async loadTasks() {
+                try {
+                    const response = await window.apiClient.getProjectTasks(this.projectId);
+                    this.tasks = response.tasks || [];
+                } catch (error) {
+                    console.error('Error loading tasks:', error);
+                }
+            },
+            
+            async createTask() {
+                try {
+                    const response = await window.apiClient.createTask(this.projectId, this.newTask);
+                    if (response.success) {
+                        this.showToast('Task created successfully!', 'success');
+                        this.hideAddTaskForm();
+                        await this.loadTasks();
+                    } else {
+                        this.showToast('Error creating task: ' + response.error, 'error');
+                    }
+                } catch (error) {
+                    this.showToast('Network error: ' + error.message, 'error');
+                }
+            },
+            
+            hideAddTaskForm() {
+                this.showAddTaskForm = false;
+                this.newTask = { title: '', description: '', priority: 2, estimated_hours: 1 };
+            },
+            
+            addRequirement() {
+                if (this.newRequirement.trim()) {
+                    this.requirements.push(this.newRequirement.trim());
+                    this.newRequirement = '';
+                }
+            },
+            
+            removeRequirement(index) {
+                this.requirements.splice(index, 1);
+            },
+            
+            async executeProject() {
+                if (!confirm('Start project execution? This will assign tasks to available agents.')) {
+                    return;
+                }
+                
+                try {
+                    const response = await window.apiClient.executeProject(this.projectId);
+                    if (response.success) {
+                        const assignments = response.assignments.map(a => `• ${a.task_title} → ${a.agent_name}`).join('\n');
+                        alert(`✅ ${response.message}\n\nTask Assignments:\n${assignments}`);
+                        await this.loadProject();
+                    } else {
+                        this.showToast('Error executing project: ' + response.error, 'error');
+                    }
+                } catch (error) {
+                    this.showToast('Network error: ' + error.message, 'error');
+                }
+            },
+            
+            async stopProject() {
+                if (!confirm('Stop project execution? This will pause all active tasks.')) {
+                    return;
+                }
+                this.showToast('Project stopping functionality coming soon!', 'info');
+            },
+            
+            async updateProject() {
+                this.showToast('Project settings updated! (Feature coming soon)', 'info');
+            }
+        }
+    }
+</script>
+{% endblock %}

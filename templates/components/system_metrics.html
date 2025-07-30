@@ -1,0 +1,81 @@
+<!-- System Metrics Component -->
+<div class="grid grid-auto-fit">
+    <!-- System Overview -->
+    <div class="card glass">
+        <div class="card-header">
+            <h3 class="card-title">📊 System Overview</h3>
+        </div>
+        
+        <div class="space-y-2">
+            <div class="metric">
+                <span class="metric-label">Total Agents:</span>
+                <span class="metric-value" x-text="systemData?.total_agents || 0">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Active Agents:</span>
+                <span class="metric-value" x-text="systemData?.active_agents || 0">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">System Load:</span>
+                <span class="metric-value" x-text="(systemData?.system_load || 0).toFixed(1) + '%'">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Concurrent Tasks:</span>
+                <span class="metric-value" x-text="systemData?.total_concurrent_tasks || 0">-</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="card glass">
+        <div class="card-header">
+            <h3 class="card-title">⚡ Performance Metrics</h3>
+        </div>
+        
+        <div class="space-y-2" x-data="{ 
+            totalTasks: 0, 
+            totalSuccessRate: 0, 
+            totalAvgTime: 0,
+            agentCount: 0,
+            
+            init() {
+                this.$watch('$parent.systemData', (data) => {
+                    if (data?.agents) {
+                        this.calculateMetrics(data.agents);
+                    }
+                });
+            },
+            
+            calculateMetrics(agents) {
+                this.totalTasks = 0;
+                this.totalSuccessRate = 0;
+                this.totalAvgTime = 0;
+                this.agentCount = 0;
+                
+                for (const [id, agent] of Object.entries(agents)) {
+                    this.totalTasks += agent.tasks_executed || 0;
+                    this.totalSuccessRate += agent.success_rate || 0;
+                    this.totalAvgTime += agent.average_execution_time || 0;
+                    this.agentCount++;
+                }
+            }
+        }">
+            <div class="metric">
+                <span class="metric-label">Tasks Completed:</span>
+                <span class="metric-value" x-text="formatNumber(totalTasks)">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Success Rate:</span>
+                <span class="metric-value" x-text="agentCount > 0 ? (totalSuccessRate / agentCount).toFixed(1) + '%' : '0%'">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Avg Response Time:</span>
+                <span class="metric-value" x-text="agentCount > 0 ? (totalAvgTime / agentCount).toFixed(2) + 's' : '0s'">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Last Update:</span>
+                <span class="metric-value" x-text="formatTime(Date.now())">-</span>
+            </div>
+        </div>
+    </div>
+</div>

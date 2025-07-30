@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Elite Crew Dashboard{% endblock %}</title>
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+    
+    <!-- Alpine.js for lightweight interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body x-data="dashboardApp()" x-init="init()">
+    <!-- Connection Status -->
+    <div class="connection-status" 
+         :class="connectionStatus === 'connected' ? 'connected' : 'disconnected'"
+         x-text="connectionStatus === 'connected' ? '🟢 Connected' : '🔴 Disconnected'">
+        🔴 Connecting...
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Main Content -->
+    {% block content %}{% endblock %}
+
+    <!-- Core JavaScript -->
+    <script src="/static/js/dashboard-core.js"></script>
+    <script src="/static/js/websocket-manager.js"></script>
+    <script src="/static/js/api-client.js"></script>
+    
+    {% block extra_scripts %}{% endblock %}
+
+    <!-- Alpine.js Data -->
+    <script>
+        function dashboardApp() {
+            return {
+                connectionStatus: 'disconnected',
+                systemData: null,
+                projects: [],
+                agents: [],
+                loading: true,
+                
+                init() {
+                    console.log('🚀 Dashboard App Initialized');
+                    this.initWebSocket();
+                    this.loadInitialData();
+                },
+                
+                initWebSocket() {
+                    window.dashboardWS = new WebSocketManager();
+                    window.dashboardWS.onStatusChange = (status) => {
+                        this.connectionStatus = status;
+                    };
+                    window.dashboardWS.onMessage = (data) => {
+                        this.handleWebSocketMessage(data);
+                    };
+                    window.dashboardWS.connect();
+                },
+                
+                async loadInitialData() {
+                    try {
+                        const [projectsData, agentsData] = await Promise.all([
+                            window.apiClient.getProjects(),
+                            window.apiClient.getAgents()
+                        ]);
+                        
+                        this.projects = projectsData.projects || [];
+                        this.agents = agentsData.agents || {};
+                        this.loading = false;
+                    } catch (error) {
+                        console.error('Failed to load initial data:', error);
+                        this.showToast('Error loading data', 'error');
+                        this.loading = false;
+                    }
+                },
+                
+                handleWebSocketMessage(data) {
+                    if (data.type === 'status_update') {
+                        this.updateSystemData(data.data);
+                    }
+                },
+                
+                updateSystemData(data) {
+                    this.systemData = data;
+                    this.agents = data.agents || {};
+                    this.loading = false;
+                },
+                
+                showToast(message, type = 'info') {
+                    window.showToast(message, type);
+                },
+                
+                refreshData() {
+                    this.loading = true;
+                    this.loadInitialData();
+                    if (window.dashboardWS?.ws?.readyState === WebSocket.OPEN) {
+                        window.dashboardWS.requestStatus();
+                    }
+                },
+                
+                formatDate(dateString) {
+                    return new Date(dateString).toLocaleDateString();
+                },
+                
+                formatTime(dateString) {
+                    return new Date(dateString).toLocaleTimeString();
+                },
+                
+                formatNumber(num) {
+                    return new Intl.NumberFormat().format(num);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

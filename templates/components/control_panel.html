@@ -1,0 +1,213 @@
+<!-- Control Panel Component -->
+<div class="card glass" x-data="{ 
+    showCreateModal: false,
+    showTaskModal: false,
+    currentProjectId: null,
+    
+    newProject: {
+        name: '',
+        description: '',
+        complexity: 'medium'
+    },
+    
+    newTask: {
+        title: '',
+        description: '',
+        priority: 2,
+        estimated_hours: 1,
+        agent_id: ''
+    },
+    
+    resetForms() {
+        this.newProject = { name: '', description: '', complexity: 'medium' };
+        this.newTask = { title: '', description: '', priority: 2, estimated_hours: 1, agent_id: '' };
+    }
+}" 
+@create-project.window="showCreateModal = true" 
+@add-task.window="showTaskModal = true; currentProjectId = $event.detail.projectId">
+
+    <div class="card-header">
+        <h3 class="card-title">🎛️ Control Panel</h3>
+    </div>
+    
+    <div class="flex flex-wrap gap-4">
+        <button class="btn btn-primary" @click="showCreateModal = true">
+            🚀 Create New Project
+        </button>
+        
+        <button class="btn btn-secondary" @click="refreshData()">
+            🔄 Refresh Data
+        </button>
+        
+        <button class="btn btn-secondary" @click="exportMetrics()">
+            📊 Export Metrics
+        </button>
+        
+        <div class="ml-auto flex items-center gap-2">
+            <span class="text-sm text-muted">Auto-refresh:</span>
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" class="form-checkbox" x-model="autoRefresh" 
+                       @change="toggleAutoRefresh($event.target.checked)">
+                <span class="text-sm">Enabled</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div x-show="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">🚀 Create New Project</h3>
+                <button class="modal-close" @click="showCreateModal = false">&times;</button>
+            </div>
+            
+            <form @submit.prevent="createProject()">
+                <div class="form-group">
+                    <label class="form-label">Project Name</label>
+                    <input type="text" class="form-input" x-model="newProject.name" 
+                           placeholder="Enter project name..." required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" rows="3" x-model="newProject.description"
+                              placeholder="Describe your project..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Complexity</label>
+                    <select class="form-select" x-model="newProject.complexity">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                
+                <div class="flex gap-4">
+                    <button type="submit" class="btn btn-success">Create Project</button>
+                    <button type="button" class="btn btn-secondary" @click="showCreateModal = false">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div x-show="showTaskModal" class="modal-overlay" @click.self="showTaskModal = false">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">➕ Add New Task</h3>
+                <button class="modal-close" @click="showTaskModal = false">&times;</button>
+            </div>
+            
+            <form @submit.prevent="createTask()">
+                <div class="form-group">
+                    <label class="form-label">Task Title</label>
+                    <input type="text" class="form-input" x-model="newTask.title" 
+                           placeholder="Enter task title..." required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" rows="3" x-model="newTask.description"
+                              placeholder="Describe the task..."></textarea>
+                </div>
+                
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Priority</label>
+                        <select class="form-select" x-model="newTask.priority">
+                            <option value="1">Low</option>
+                            <option value="2">Medium</option>
+                            <option value="3">High</option>
+                            <option value="4">Critical</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Estimated Hours</label>
+                        <input type="number" class="form-input" x-model="newTask.estimated_hours" 
+                               min="0.5" step="0.5" placeholder="1">
+                    </div>
+                </div>
+                
+                <div class="flex gap-4">
+                    <button type="submit" class="btn btn-success">Create Task</button>
+                    <button type="button" class="btn btn-secondary" @click="showTaskModal = false">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Add methods to the Alpine component
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('controlPanel', () => ({
+            autoRefresh: true,
+            refreshInterval: null,
+            
+            async createProject() {
+                try {
+                    const response = await window.apiClient.createProject(this.newProject);
+                    if (response.success) {
+                        this.showToast('Project created successfully!', 'success');
+                        this.showCreateModal = false;
+                        this.resetForms();
+                        this.refreshData();
+                    } else {
+                        this.showToast('Error creating project: ' + response.error, 'error');
+                    }
+                } catch (error) {
+                    this.showToast('Network error: ' + error.message, 'error');
+                }
+            },
+            
+            async createTask() {
+                try {
+                    const response = await window.apiClient.createTask(this.currentProjectId, this.newTask);
+                    if (response.success) {
+                        this.showToast('Task created successfully!', 'success');
+                        this.showTaskModal = false;
+                        this.resetForms();
+                        this.refreshData();
+                    } else {
+                        this.showToast('Error creating task: ' + response.error, 'error');
+                    }
+                } catch (error) {
+                    this.showToast('Network error: ' + error.message, 'error');
+                }
+            },
+            
+            async exportMetrics() {
+                try {
+                    const data = await window.apiClient.getMetrics();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], {
+                        type: 'application/json'
+                    });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `elite_metrics_${new Date().toISOString().slice(0, 10)}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    this.showToast('Metrics exported successfully!', 'success');
+                } catch (error) {
+                    this.showToast('Error exporting metrics: ' + error.message, 'error');
+                }
+            },
+            
+            toggleAutoRefresh(enabled) {
+                if (enabled) {
+                    this.refreshInterval = setInterval(() => {
+                        this.refreshData();
+                    }, 30000);
+                } else {
+                    if (this.refreshInterval) {
+                        clearInterval(this.refreshInterval);
+                        this.refreshInterval = null;
+                    }
+                }
+            }
+        }))
+    });
+</script>

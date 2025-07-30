@@ -1,0 +1,101 @@
+<!-- Project Grid Component -->
+<div x-data="{ 
+    taskCounts: {},
+    
+    async loadTaskCount(projectId) {
+        try {
+            const data = await window.apiClient.getProjectTasks(projectId);
+            const tasks = data.tasks || [];
+            const completedTasks = tasks.filter(t => t.status === 'completed').length;
+            this.taskCounts[projectId] = `${completedTasks}/${tasks.length}`;
+        } catch (error) {
+            console.error('Error loading task count:', error);
+            this.taskCounts[projectId] = 'Error';
+        }
+    },
+    
+    init() {
+        this.$watch('$parent.projects', (projects) => {
+            projects.forEach(project => {
+                this.loadTaskCount(project.id);
+            });
+        });
+    }
+}">
+    <div class="card glass">
+        <div class="card-header">
+            <h3 class="card-title">📋 Projects</h3>
+            <button class="btn btn-primary" @click="$dispatch('create-project')">
+                🚀 Create New Project
+            </button>
+        </div>
+        
+        <div class="grid grid-auto-fit" x-show="!loading">
+            <template x-for="project in projects" :key="project.id">
+                <div class="project-card glass" @click="navigateToProject(project.id)">
+                    <div class="project-name" x-text="project.name"></div>
+                    <div class="project-description" x-text="project.description || 'No description'"></div>
+                    
+                    <div class="project-meta">
+                        <div class="flex items-center gap-4">
+                            <span class="badge" :class="{
+                                'badge-planning': project.status === 'planning',
+                                'badge-in-progress': project.status === 'in_progress', 
+                                'badge-completed': project.status === 'completed'
+                            }" x-text="project.status"></span>
+                            
+                            <div class="project-progress">
+                                Progress: <span x-text="project.progress || 0"></span>%
+                            </div>
+                        </div>
+                        
+                        <div class="text-sm text-muted">
+                            <div x-text="'Created: ' + formatDate(project.created_at)"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-glass">
+                        <span class="text-sm text-secondary">
+                            📝 Tasks: <span x-text="taskCounts[project.id] || 'Loading...'"></span>
+                        </span>
+                        <button class="btn btn-sm" @click.stop="$dispatch('add-task', { projectId: project.id })">
+                            ➕ Add Task
+                        </button>
+                    </div>
+                    
+                    <div class="progress-bar mt-2">
+                        <div class="progress-fill" :style="`width: ${project.progress || 0}%`"></div>
+                    </div>
+                </div>
+            </template>
+        </div>
+        
+        <!-- Loading State -->
+        <div x-show="loading" class="grid grid-auto-fit">
+            <template x-for="i in 3" :key="i">
+                <div class="project-card glass">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text"></div>
+                </div>
+            </template>
+        </div>
+        
+        <!-- Empty State -->
+        <div x-show="!loading && projects.length === 0" class="text-center py-12">
+            <div class="text-6xl mb-4">📋</div>
+            <p class="text-xl font-semibold mb-2">No projects yet</p>
+            <p class="text-muted mb-6">Create your first project to get started with the Elite Crew System</p>
+            <button class="btn btn-primary" @click="$dispatch('create-project')">
+                🚀 Create Your First Project
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function navigateToProject(projectId) {
+        window.location.href = `/project/${projectId}`;
+    }
+</script>

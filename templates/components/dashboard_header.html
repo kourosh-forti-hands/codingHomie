@@ -1,0 +1,17 @@
+<!-- Dashboard Header Component -->
+<div class="dashboard-header glass">
+    <h1>🔥 Elite Crew Dashboard</h1>
+    <p>Real-time monitoring and control interface for the Elite Multi-Agent System</p>
+    
+    <div class="flex items-center justify-center gap-4 mt-4">
+        <div class="badge badge-online" x-show="systemData?.total_agents > 0">
+            <span x-text="systemData?.active_agents || 0"></span> Active Agents
+        </div>
+        <div class="badge badge-planning">
+            <span x-text="projects.length"></span> Projects
+        </div>
+        <div class="badge" :class="systemData?.system_load > 80 ? 'badge-busy' : 'badge-online'">
+            <span x-text="systemData?.system_load?.toFixed(1) || 0"></span>% Load
+        </div>
+    </div>
+</div>
