@@ -57,7 +57,7 @@ class Project(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     started_at = Column(DateTime)
     completed_at = Column(DateTime)
-    metadata = Column(JSON, default=dict)
+    project_metadata = Column(JSON, default=dict)
     
     # Relationships
     workflow_stages = relationship("WorkflowStage", back_populates="project", cascade="all, delete-orphan")
@@ -79,7 +79,7 @@ class Agent(Base):
     tasks_failed = Column(Integer, default=0)
     online_since = Column(DateTime)
     last_active = Column(DateTime, default=datetime.utcnow)
-    metadata = Column(JSON, default=dict)
+    agent_metadata = Column(JSON, default=dict)
     
     # Relationships
     tasks = relationship("Task", back_populates="agent", foreign_keys="Task.agent_id")
@@ -124,7 +124,7 @@ class Task(Base):
     completed_at = Column(DateTime)
     error_count = Column(Integer, default=0)
     last_error = Column(Text)
-    metadata = Column(JSON, default=dict)
+    task_metadata = Column(JSON, default=dict)
     
     # Relationships
     project = relationship("Project", back_populates="tasks")
@@ -145,7 +145,7 @@ class Message(Base):
     response_deadline = Column(DateTime)
     is_responded = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    metadata = Column(JSON, default=dict)
+    message_metadata = Column(JSON, default=dict)
     
     # Relationships
     project = relationship("Project", back_populates="messages")
@@ -162,7 +162,7 @@ class QualityGate(Base):
     validation_timestamp = Column(DateTime)
     validation_notes = Column(Text)
     project_id = Column(String, ForeignKey("projects.id"))
-    metadata = Column(JSON, default=dict)
+    gate_metadata = Column(JSON, default=dict)
 
 class PerformanceMetric(Base):
     __tablename__ = "performance_metrics"
@@ -174,7 +174,7 @@ class PerformanceMetric(Base):
     unit = Column(String)
     threshold = Column(Float)
     timestamp = Column(DateTime, default=datetime.utcnow)
-    metadata = Column(JSON, default=dict)
+    metric_metadata = Column(JSON, default=dict)
     
     # Relationships
     project = relationship("Project", back_populates="metrics")

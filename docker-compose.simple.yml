@@ -1,0 +1,65 @@
+services:
+  # 🔥 Elite Crew System - Main Application
+  elite-crew:
+    build:
+      context: .
+      target: production
+    container_name: elite-crew-system
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite+aiosqlite:///data/elite_crew.db
+      - LOG_LEVEL=INFO
+      - MAX_CONCURRENT_AGENTS=5
+      - ENABLE_METRICS=true
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    networks:
+      - elite-network
+    restart: unless-stopped
+
+  # 📊 PostgreSQL Database (optional)
+  postgres:
+    image: postgres:15-alpine
+    container_name: elite-postgres
+    environment:
+      - POSTGRES_DB=elitecrewdb
+      - POSTGRES_USER=elitecrew
+      - POSTGRES_PASSWORD=elitepass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - elite-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U elitecrew -d elitecrewdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ⚡ Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: elite-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - elite-network
+    restart: unless-stopped
+
+networks:
+  elite-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

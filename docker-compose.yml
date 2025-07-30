@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 🔥 Elite Crew System - Main Application
   elite-crew:
@@ -103,7 +101,7 @@ services:
       - ./monitoring/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
       - ./monitoring/dashboards:/var/lib/grafana/dashboards
     ports:
-      - "3000:3000"
+      - "3001:3000"
     networks:
       - elite-network
     restart: unless-stopped
